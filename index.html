@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ໂປຼແກມຮຽນ ຄຳຖາມສອບເສັງໃບຂັບຂີ່ - Lao Driving License Quiz</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:,">
+</head>
+<body>
+
+    <div class="quiz-container">
+        
+        <!-- 🏠 ໜ້າຫຼັກ: ເລືອກປະເພດ ແລະ ໂໝດການສອບເສັງ/ອ່ານ -->
+        <div id="home-screen" style="text-align: center; padding: 25px 10px; display: block; flex-grow: 1; overflow-y: auto;">
+            <h1 style="font-size: 1.3rem; color: #1b5e20; margin-bottom: 15px;">ໂປຼແກມຮຽນ ຄຳຖາມສອບເສັງໃບຂັບຂີ່</h1>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="homeCategory" style="font-weight: bold; font-size: 0.95rem; display: block; margin-bottom: 8px;">ເລືອກປະເພດໃບຂັບຂີ່:</label>
+                <select id="homeCategory" style="padding: 10px 15px; font-size: 0.95rem; border-radius: 8px; border: 2px solid #1b5e20; background-color: #fff; color: #1b5e20; font-weight: bold; width: 100%; max-width: 280px; outline: none; cursor: pointer;">
+                    <option value="ABC.txt">ປະເພດ ABC</option>
+                    <option value="A.txt">ປະເພດ A</option>
+                    <option value="AB.txt">ປະເພດ AB</option>
+                    <option value="B.txt">ປະເພດ B</option>
+                    <option value="CDBC.txt">ປະເພດ C</option>
+                    <option value="CDBC.txt">ປະເພດ D</option>
+                    <option value="CDBC.txt">ປະເພດ BC</option>
+                </select>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; max-width: 280px; margin: 0 auto;">
+                <button onclick="startApp('quiz')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #1b5e20; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    📝 ເຂົ້າສູ່ໂໝດສອບເສັງ (ຄິດຄະແນນ)
+                </button>
+                <button onclick="startApp('study')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    📖 ໂໝດອ່ານຮຽນຮູ້ (เฉลยเขียวทันที)
+                </button>
+            </div>
+        </div>
+
+        <!-- 📝 ໜ້າຈໍເຮັດຂໍ້ສອບ / ອ່ານ -->
+        <div id="main-quiz-wrapper" style="display: none; height: 100%; flex-direction: column; overflow: hidden; position: relative;">
+            
+            <!-- 📌 หัวข้อและตารางคะแนนสด -->
+            <div style="text-align: center; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+                <h1 style="font-size: 1rem; color: #1b5e20; margin: 0; padding: 0; line-height: 1.2;">ຂໍ້ສອບເສັງໃບຂັບຂີ່</h1>
+                <div id="live-score-board" style="display: flex; gap: 8px; font-size: 0.8rem; font-weight: bold;">
+                    <span style="color: #28a745;">✅ ຖືກ: <span id="live-correct">0</span></span>
+                    <span style="color: #c62828;">❌ ຜິດ: <span id="live-wrong">0</span></span>
+                </div>
+            </div>
+
+            <!-- 📌 ແຖວສະແດງຈຳນວນຂໍ້ ແລະ ປ່ຽນປະເພດ -->
+            <div class="category-select-box" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; padding: 3px 6px; background: rgba(255,255,255,0.6); border-radius: 4px; border: 1px solid #fbc02d; flex-shrink: 0;">
+                <div id="question-count" style="font-weight: bold; font-size: 0.8rem; color: #2c3e50;">
+                    ຄຳຖາມທີ 1 ທັງໝົດ 367 
+                </div>
+                <div>
+                    <label for="licenseCategory" style="font-weight: bold; font-size: 0.8rem; margin-right: 3px;">ປະເພດໃບຂັບຂີ່:</label>
+                    <select id="licenseCategory" onchange="changeCategory()" style="padding: 2px 4px; font-size: 0.8rem;">
+                        <option value="ABC.txt">ປະເພດ ABC</option>
+                        <option value="A.txt">ປະເພດ A</option>
+                        <option value="AB.txt">ປະເພດ AB</option>
+                        <option value="B.txt">ປະເພດ B</option>
+                        <option value="CDBC.txt">ປະເພດ C</option>
+                        <option value="CDBC.txt">ປະເພດ D</option>
+                        <option value="CDBC.txt">ປະເພດ BC</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="quiz-screen" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; position: relative;">
+                <!-- ก้อนคำถาม เลื่อนได้เฉพาะส่วนนี้ -->
+                <div class="question-card">
+                    <div class="question-title" id="question-text">ກຳລັງໂຫຼດຂໍ້ສອບ...</div>
+                    <div class="question-image" id="image-container"></div>
+                    <div class="options-group" id="options-container"></div>
+                </div>
+
+                <!-- 📌 ปุ่มต่อไป ล็อกตำแหน่งด้านล่าง -->
+                <div class="nav-buttons">
+                    <button class="btn-next" id="btn-next" onclick="nextQuestion()">ຕໍ່ໄປ</button>
+                </div>
+            </div>
+
+            <div id="result-screen" style="display: none; text-align: center; flex-grow: 1; padding-top: 20px;">
+                <h2>ຜົນການສອບເສັງຂອງທ່ານ</h2>
+                <div class="score-display" id="final-score">0 / 0</div>
+                <p id="score-message" style="margin-bottom: 10px; font-size: 0.9rem;"></p>
+                <button class="btn-restart" onclick="restartQuiz()" style="width: 100%;">ເລີ່ມສອບໃໝ່</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+:root {
+    --primary-color: #1b5e20;
+    --primary-hover: #2e7d32;
+    --bg-color: #ffeb3b;      
+    --card-bg: #ffeb3b;       
+    --text-color: #2c3e50;
+    --border-radius: 8px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: 'Noto Sans Lao', 'Lao Lao', sans-serif, Arial, sans-serif;
+    color: var(--text-color);
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+}
+
+/* 📌 ล็อกความสูงกล่องหลักให้พอดีกับหน้าจอมือถือ */
+.quiz-container {
+    width: 100%;
+    max-width: 600px;
+    height: 82vh;
+    max-height: 530px;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 8px 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+header {
+    text-align: center;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #fbc02d;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+}
+
+header h1 {
+    font-size: 1.1rem;
+    color: var(--primary-color);
+    margin-bottom: 0;
+}
+
+.category-select-box {
+    margin-bottom: 4px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.category-select-box select {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 2px solid #1b5e20;
+    background-color: #fff;
+    color: #1b5e20;
+    font-weight: bold;
+    outline: none;
+}
+
+#quiz-screen {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 📌 เว้นพื้นที่ด้านล่างพอดี (45px) ให้ไม่ทับกับปุ่มที่ล็อกไว้ */
+.question-card {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: 45px; 
+    padding-right: 4px;
+}
+
+.question-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1a252f;
+    line-height: 1.35;
+}
+
+.question-image {
+    text-align: center;
+    margin: 4px 0;
+    width: 100%;
+}
+
+.question-image img {
+    max-height: 100px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.option-label {
+    display: flex;
+    align-items: center;
+    padding: 7px 10px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1.3;
+}
+
+.option-label:hover {
+    background-color: #eef6ec;
+    border-color: var(--primary-color);
+}
+
+.option-label.correct-option {
+    background-color: #2e7d32 !important;
+    border-color: #1b5e20 !important;
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+.option-label.wrong-option {
+    background-color: #c62828 !important;
+    border-color: #b71c1c !important;
+    color: #ffffff !important;
+    font-weight: bold;
+}
+
+/* 📌 ล็อกปุ่ม "ต่อไป" ให้อยู่สูงขึ้นมาจากขอบล่างพอดีสวยงาม (bottom: 6px) */
+.nav-buttons {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+    width: auto;
+    padding: 6px 10px;
+    background-color: var(--card-bg);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+}
+
+.btn-next {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-submit {
+    background-color: #e67e22;
+    color: white;
+}
+
+#result-screen {
+    text-align: center;
+    display: none;
+    padding: 20px 0;
+}
+
+.score-display {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin: 10px 0;
+}
+
+.btn-restart {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    width: 100%;
+}
