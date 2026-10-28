@@ -5,12 +5,23 @@ let isAnswered = false;
 
 let correctCount = 0;
 let wrongCount = 0;
+let wrongQuestionsList = []; 
 let currentCategoryFile = 'ABC.txt';
-let currentMode = 'quiz'; // 'quiz' (โหมดสอบ) หรือ 'study' (โหมดเรียนรู้เฉลยทันที)
+let currentMode = 'quiz'; 
+let hasSkipped = false; 
 
-// เริ่มต้นแอปเมื่อเลือกโหมดจากหน้าแรก
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
 function startApp(mode) {
     currentMode = mode;
+    hasSkipped = false; 
+    
     const homeSelect = document.getElementById('homeCategory');
     if (homeSelect) {
         currentCategoryFile = homeSelect.value;
@@ -18,12 +29,43 @@ function startApp(mode) {
         if (innerSelect) innerSelect.value = currentCategoryFile;
     }
 
-    // ซ่อนหน้าหลัก สลับแสดงหน้า Quiz Wrapper แบบ flex
-    document.getElementById('home-screen').style.display = 'none';
-    const wrapper = document.getElementById('main-quiz-wrapper');
-    wrapper.style.display = 'flex';
+    const homeScreen = document.getElementById('home-screen');
+    if (homeScreen) homeScreen.style.display = 'none';
 
-    // ซ่อนคะแนนสดถ้าอยู่ในโหมดเรียนรู้
+    const wrapper = document.getElementById('main-quiz-wrapper');
+    if (wrapper) wrapper.style.display = 'flex';
+
+    const appBody = document.getElementById('app-body');
+    const quizBox = document.getElementById('main-quiz-box');
+    const subHeader = document.getElementById('sub-header-bar');
+    const modeHeader = document.getElementById('mode-header-title');
+
+    if (currentMode === 'study') {
+        if (appBody) appBody.style.backgroundColor = '#bbdefb';
+        if (quizBox) {
+            quizBox.style.backgroundColor = '#e3f2fd';
+            quizBox.style.borderColor = '#64b5f6';
+        }
+        if (subHeader) subHeader.style.borderColor = '#42a5f5';
+        if (modeHeader) modeHeader.style.color = '#1565c0';
+    } else if (currentMode === 'quiz') {
+        if (appBody) appBody.style.backgroundColor = '#c8e6c9';
+        if (quizBox) {
+            quizBox.style.backgroundColor = '#e8f5e9';
+            quizBox.style.borderColor = '#81c784';
+        }
+        if (subHeader) subHeader.style.borderColor = '#66bb6a';
+        if (modeHeader) modeHeader.style.color = '#2e7d32';
+    } else if (currentMode === 'random') {
+        if (appBody) appBody.style.backgroundColor = '#fff9c4';
+        if (quizBox) {
+            quizBox.style.backgroundColor = '#fffde7';
+            quizBox.style.borderColor = '#ffd54f';
+        }
+        if (subHeader) subHeader.style.borderColor = '#ffca28';
+        if (modeHeader) modeHeader.style.color = '#f57f17';
+    }
+
     const scoreBoard = document.getElementById('live-score-board');
     if (scoreBoard) {
         scoreBoard.style.display = (currentMode === 'study') ? 'none' : 'flex';
@@ -32,19 +74,40 @@ function startApp(mode) {
     fetchQuestions(currentCategoryFile, false);
 }
 
-// กลับสู่หน้าหลัก
 function goHome() {
-    document.getElementById('main-quiz-wrapper').style.display = 'none';
-    document.getElementById('home-screen').style.display = 'block';
+    const wrapper = document.getElementById('main-quiz-wrapper');
+    if (wrapper) wrapper.style.display = 'none';
+
+    const homeScreen = document.getElementById('home-screen');
+    if (homeScreen) homeScreen.style.display = 'block';
+
+    const appBody = document.getElementById('app-body');
+    if (appBody) appBody.style.backgroundColor = '';
+
+    const quizBox = document.getElementById('main-quiz-box');
+    if (quizBox) {
+        quizBox.style.backgroundColor = '';
+        quizBox.style.borderColor = '';
+    }
 }
 
 async function fetchQuestions(filename, isRestoring = false) {
     currentCategoryFile = filename;
-    document.getElementById('result-screen').style.display = 'none';
-    document.getElementById('quiz-screen').style.display = 'flex';
-    document.getElementById('question-text').innerText = 'ກຳລັງໂຫຼດຂໍ້ສອບຈາກ ' + filename + '...';
-    document.getElementById('options-container').innerHTML = '';
-    document.getElementById('image-container').innerHTML = '';
+    
+    const resultScreen = document.getElementById('result-screen');
+    if (resultScreen) resultScreen.style.display = 'none';
+
+    const quizScreen = document.getElementById('quiz-screen');
+    if (quizScreen) quizScreen.style.display = 'flex';
+
+    const questionText = document.getElementById('question-text');
+    if (questionText) questionText.innerText = 'ກຳລັງໂຫຼດຂໍ້ສອບຈາກ ' + filename + '...';
+
+    const optionsContainer = document.getElementById('options-container');
+    if (optionsContainer) optionsContainer.innerHTML = '';
+
+    const imgContainer = document.getElementById('image-container');
+    if (imgContainer) imgContainer.innerHTML = '';
     
     try {
         const response = await fetch(filename);
@@ -52,23 +115,46 @@ async function fetchQuestions(filename, isRestoring = false) {
             throw new Error('ไม่พบไฟล์ ' + filename);
         }
         const textData = await response.text();
-        quizQuestions = parseCsvInsideTxt(textData);
         
-        // [ปรับปรุง] ให้ทั้งโหมด quiz และ study โหลดเซฟสถานะเดิม (ถ้ามี)
-        if (!isRestoring) {
-            const storageKey = 'lao_quiz_state_' + currentMode + '_' + filename;
-            const savedData = localStorage.getItem(storageKey);
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                currentQuestionIndex = data.currentQuestionIndex || 0;
-                userAnswers = data.userAnswers || {};
-                correctCount = data.correctCount || 0;
-                wrongCount = data.wrongCount || 0;
+        if (currentMode === 'review_wrong') {
+            const savedWrong = localStorage.getItem('lao_quiz_wrong_' + filename);
+            if (savedWrong) {
+                quizQuestions = JSON.parse(savedWrong);
             } else {
-                currentQuestionIndex = 0;
-                userAnswers = {};
-                correctCount = 0;
-                wrongCount = 0;
+                quizQuestions = [];
+            }
+            currentQuestionIndex = 0;
+            userAnswers = {};
+            correctCount = 0;
+            wrongCount = 0;
+        } else {
+            quizQuestions = parseCsvInsideTxt(textData);
+            
+            if (!isRestoring) {
+                const storageKey = 'lao_quiz_state_' + currentMode + '_' + filename;
+                const savedData = localStorage.getItem(storageKey);
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    currentQuestionIndex = data.currentQuestionIndex || 0;
+                    userAnswers = data.userAnswers || {};
+                    correctCount = data.correctCount || 0;
+                    wrongCount = data.wrongCount || 0;
+                    if (currentMode === 'random' && data.quizQuestions) {
+                        quizQuestions = data.quizQuestions;
+                    }
+                } else {
+                    currentQuestionIndex = 0;
+                    userAnswers = {};
+                    correctCount = 0;
+                    wrongCount = 0;
+                    if (currentMode === 'random') {
+                        shuffleArray(quizQuestions);
+                    }
+                }
+            } else {
+                if (currentMode === 'random') {
+                    shuffleArray(quizQuestions);
+                }
             }
         }
         
@@ -78,11 +164,13 @@ async function fetchQuestions(filename, isRestoring = false) {
         if (quizQuestions.length > 0) {
             loadQuestion();
         } else {
-            document.getElementById('question-text').innerText = 'ບໍ່ພົບຂໍ້ມູນຂໍ້ສອບໃນໄຟລ໌ນີ້';
+            if (questionText) questionText.innerText = 'ບໍ່ມີຂໍ້ສອບທີ່ຜິດໃຫ້ແກ້';
+            const nextBtn = document.getElementById('btn-next');
+            if(nextBtn) nextBtn.style.display = 'none';
         }
     } catch (error) {
         console.error(error);
-        document.getElementById('question-text').innerText = 'เกิดข้อผิดพลาดในการโหลดไฟล์ ' + filename;
+        if (questionText) questionText.innerText = 'เกิดข้อผิดพลาดในการโหลดไฟล์ ' + filename;
     }
 }
 
@@ -166,12 +254,17 @@ function changeCategory() {
 }
 
 function saveQuizState() {
-    // [ปรับปรุง] บันทึกสถานะแยกตามโหมด (quiz / study)
+    if (currentMode === 'review_wrong') return;
+    if (hasSkipped) {
+        localStorage.removeItem('lao_quiz_state_' + currentMode + '_' + currentCategoryFile);
+        return;
+    }
     const stateData = {
         currentQuestionIndex: currentQuestionIndex,
         userAnswers: userAnswers,
         correctCount: correctCount,
-        wrongCount: wrongCount
+        wrongCount: wrongCount,
+        quizQuestions: (currentMode === 'random') ? quizQuestions : undefined
     };
     localStorage.setItem('lao_quiz_state_' + currentMode + '_' + currentCategoryFile, JSON.stringify(stateData));
 }
@@ -179,8 +272,14 @@ function saveQuizState() {
 function loadQuestion() {
     if (quizQuestions.length === 0) return;
 
-    document.getElementById('result-screen').style.display = 'none';
-    document.getElementById('quiz-screen').style.display = 'flex';
+    const resultScreen = document.getElementById('result-screen');
+    if (resultScreen) resultScreen.style.display = 'none';
+
+    const quizScreen = document.getElementById('quiz-screen');
+    if (quizScreen) quizScreen.style.display = 'flex';
+
+    const nextBtn = document.getElementById('btn-next');
+    if(nextBtn) nextBtn.style.display = 'block';
 
     const q = quizQuestions[currentQuestionIndex];
     
@@ -190,52 +289,58 @@ function loadQuestion() {
         isAnswered = userAnswers[currentQuestionIndex] !== undefined;
     }
 
-    document.getElementById('question-count').innerText = `ຄຳຖາມທີ ${currentQuestionIndex + 1} ຈາກ ${quizQuestions.length}`;
-    document.getElementById('question-text').innerText = q.question;
+    const qCount = document.getElementById('question-count');
+    if (qCount) qCount.innerText = `ຄຳຖາມທີ ${currentQuestionIndex + 1} ຈາກ ${quizQuestions.length}`;
+
+    const qText = document.getElementById('question-text');
+    if (qText) qText.innerText = q.question;
 
     const imgContainer = document.getElementById('image-container');
-    if (q.image) {
-        imgContainer.innerHTML = `<img src="${q.image}" alt="Traffic Sign">`;
-    } else {
-        imgContainer.innerHTML = '';
+    if (imgContainer) {
+        if (q.image) {
+            imgContainer.innerHTML = `<img src="${q.image}" alt="Traffic Sign">`;
+        } else {
+            imgContainer.innerHTML = '';
+        }
     }
 
     const optionsContainer = document.getElementById('options-container');
-    optionsContainer.innerHTML = '';
+    if (optionsContainer) {
+        optionsContainer.innerHTML = '';
 
-    const laoLetters = ['ກ', 'ຂ', 'ຄ', 'ງ'];
+        const laoLetters = ['ກ', 'ຂ', 'ຄ', 'ງ'];
 
-    q.options.forEach((opt, idx) => {
-        const isChecked = userAnswers[currentQuestionIndex] === idx;
-        let extraClass = '';
+        q.options.forEach((opt, idx) => {
+            const isChecked = userAnswers[currentQuestionIndex] === idx;
+            let extraClass = '';
 
-        if (currentMode === 'study') {
-            if (idx === q.answer) {
-                extraClass = 'correct-option';
-            }
-        } else {
-            if (isAnswered) {
+            if (currentMode === 'study') {
                 if (idx === q.answer) {
-                    extraClass = 'correct-option'; 
-                } else if (isChecked && idx !== q.answer) {
-                    extraClass = 'wrong-option';    
+                    extraClass = 'correct-option';
+                }
+            } else {
+                if (isAnswered) {
+                    if (idx === q.answer) {
+                        extraClass = 'correct-option'; 
+                    } else if (isChecked && idx !== q.answer) {
+                        extraClass = 'wrong-option';    
+                    }
                 }
             }
-        }
 
-        const letterLabel = laoLetters[idx] || (idx + 1);
+            const letterLabel = laoLetters[idx] || (idx + 1);
 
-        const optionHTML = `
-            <label class="option-label ${extraClass}" onclick="selectOption(${idx})" style="cursor: pointer;">
-                <input type="radio" name="option" value="${idx}" ${isChecked ? 'checked' : ''} ${isAnswered && currentMode === 'quiz' ? 'disabled' : ''} style="display: none;">
-                <span style="font-weight: bold; margin-right: 10px; font-size: 1.05rem;">${letterLabel}.</span>
-                <span>${opt}</span>
-            </label>
-        `;
-        optionsContainer.innerHTML += optionHTML;
-    });
+            const optionHTML = `
+                <label class="option-label ${extraClass}" onclick="selectOption(${idx})" style="cursor: pointer;">
+                    <input type="radio" name="option" value="${idx}" ${isChecked ? 'checked' : ''} ${isAnswered && currentMode !== 'study' ? 'disabled' : ''} style="display: none;">
+                    <span style="font-weight: bold; margin-right: 10px; font-size: 1.05rem;">${letterLabel}.</span>
+                    <span>${opt}</span>
+                </label>
+            `;
+            optionsContainer.innerHTML += optionHTML;
+        });
+    }
 
-    const nextBtn = document.getElementById('btn-next');
     if (nextBtn) {
         if (currentQuestionIndex === quizQuestions.length - 1) {
             nextBtn.innerText = (currentMode === 'study') ? 'เสร็จสิ้น' : 'ສົ່ງຂໍ້ສອບ';
@@ -245,7 +350,7 @@ function loadQuestion() {
             nextBtn.className = 'btn-next';
         }
 
-        if (currentMode === 'quiz' && !isAnswered) {
+        if (currentMode !== 'study' && !isAnswered) {
             nextBtn.style.opacity = '0.5';
             nextBtn.style.cursor = 'not-allowed';
         } else {
@@ -269,6 +374,9 @@ function selectOption(index) {
         correctCount++;
     } else {
         wrongCount++;
+        if (!wrongQuestionsList.some(item => item.question === q.question)) {
+            wrongQuestionsList.push(q);
+        }
     }
     updateLiveScore();
     saveQuizState();
@@ -284,14 +392,14 @@ function updateLiveScore() {
 }
 
 function nextQuestion() {
-    if (currentMode === 'quiz' && !isAnswered) {
+    if (currentMode !== 'study' && !isAnswered) {
         alert('ກະລຸນາເລືອກຄຳຕອບກ່ອນກົດໄປຂໍ້ถัดไป!');
         return;
     }
 
     if (currentQuestionIndex < quizQuestions.length - 1) {
         currentQuestionIndex++;
-        saveQuizState(); // [เพิ่ม] บันทึกตำแหน่งทันทีเมื่อกดไปข้อถัดไป
+        saveQuizState();
         loadQuestion();
     } else {
         if (currentMode === 'study') {
@@ -302,49 +410,126 @@ function nextQuestion() {
     }
 }
 
-function showStudyCompleteScreen() {
-    document.getElementById('quiz-screen').style.display = 'none';
-    document.getElementById('result-screen').style.display = 'block';
+function jumpToLastQuestion() {
+    if (quizQuestions.length === 0) return;
     
-    document.getElementById('final-score').innerHTML = '🎉 ທ່ານອ່ານທົບທວນຄຳຖາມຈົບໝົດທຸກຂໍ້ແລ້ວ!';
-    document.getElementById('score-message').innerHTML = 'ຢາກລອງທົດສອບຄວາມຮູ້ໃນໂໝດສອບເສັງ (ຄິດຄະແນນ) ເລີຍບໍ່?';
-    
-    const resultContainer = document.getElementById('result-screen');
-    
-    let actionButtons = document.getElementById('study-action-buttons');
-    if (!actionButtons) {
-        actionButtons = document.createElement('div');
-        actionButtons.id = 'study-action-buttons';
-        actionButtons.style.cssText = 'display: flex; flex-direction: column; gap: 10px; margin-top: 15px;';
-        resultContainer.appendChild(actionButtons);
-    }
+    hasSkipped = true;
 
-    actionButtons.innerHTML = `
-        <button onclick="startApp('quiz')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #1b5e20; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            📝 ເລີ່ມເຂົ້າສູ່ໂໝດສອບເສັງເລີຍ
-        </button>
-        <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer;">
-            🏠 ກັບໄປໜ້າຫຼັກ
-        </button>
-    `;
+    currentQuestionIndex = quizQuestions.length - 1;
+    loadQuestion();
+}
+
+function showStudyCompleteScreen() {
+    const quizScreen = document.getElementById('quiz-screen');
+    if (quizScreen) quizScreen.style.display = 'none';
+
+    const resultScreen = document.getElementById('result-screen');
+    if (resultScreen) resultScreen.style.display = 'block';
     
-    const oldRestartBtn = resultContainer.querySelector('.btn-restart');
-    if (oldRestartBtn) oldRestartBtn.style.display = 'none';
+    const finalScore = document.getElementById('final-score');
+    const scoreMsg = document.getElementById('score-message');
+    const actionButtons = document.getElementById('result-action-buttons');
+
+    if (hasSkipped) {
+        if (finalScore) finalScore.innerHTML = '⚠️ ທ່ານໄດ້ກົດຂ້າມ (ມີການກົດຂ້າມ)';
+        if (scoreMsg) scoreMsg.innerHTML = '⚠️ ທ່ານໄດ້ກົດຂ້າມຂັ້ນຕອນ! ລະບົບເຕືອນ: ຖືວ່າອ່ານບໍ່ຈົບ ຕ້ອງທົບທວນໃໝ່';
+        
+        localStorage.removeItem('lao_quiz_state_study_' + currentCategoryFile);
+
+        if (actionButtons) {
+            actionButtons.innerHTML = `
+                <button onclick="startApp('study')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                    🔄  ເລີ່ມຕົ້ນໃໝ່
+                </button>
+                <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                    🏠 ກຼັບຄືນໜ້າທຳອິດ
+                </button>
+            `;
+        }
+        return;
+    } else {
+        if (finalScore) finalScore.innerHTML = '🎉 ທ່ານອ່ານທົບທວນຄຳຖາມຈົບໝົດທຸກຂໍ້ແລ້ວ!';
+        if (scoreMsg) scoreMsg.innerHTML = 'ຢາກລອງທົດສອບຄວາມຮູ້ໃນໂໝດສອບເສັງ (ຄິດຄະແນນ) ເລີຍບໍ່?';
+    }
+    
+    if (actionButtons) {
+        actionButtons.innerHTML = `
+            <button onclick="startApp('quiz')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #1b5e20; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                📝 ເລີ່ມເຂົ້າສູ່ໂໝດສອບເສັງເລີຍ
+            </button>
+            <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                🏠 กลับໄປหน้าหลัก
+            </button>
+        `;
+    }
 }
 
 function showResults() {
-    document.getElementById('quiz-screen').style.display = 'none';
-    document.getElementById('result-screen').style.display = 'block';
+    const quizScreen = document.getElementById('quiz-screen');
+    if (quizScreen) quizScreen.style.display = 'none';
+
+    const resultScreen = document.getElementById('result-screen');
+    if (resultScreen) resultScreen.style.display = 'block';
     
-    document.getElementById('final-score').innerText = `${correctCount} / ${quizQuestions.length}`;
+    const actionButtons = document.getElementById('result-action-buttons');
+    let reviewButtonHtml = '';
 
-    const passThreshold = Math.ceil(quizQuestions.length * 0.8);
-    const msg = correctCount >= passThreshold
-        ? '🎉 ຍິນດີດ້ວຍ! ທ່ານຜ່ານການສອບເສັງ'
-        : '❌ ທ່ານບໍ່ຜ່ານການສອບເສັງ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ';
-    document.getElementById('score-message').innerText = msg;
+    const finalScore = document.getElementById('final-score');
+    const scoreMsg = document.getElementById('score-message');
 
-    localStorage.removeItem('lao_quiz_state_quiz_' + currentCategoryFile);
+    if (hasSkipped) {
+        if (finalScore) finalScore.innerText = `❌ ສອບເສັງບໍ່ຜ່ານ (ມີການກົດຂ້າມ)`;
+        if (scoreMsg) scoreMsg.innerText = `⚠️ ທ່ານໄດ້ກົດຂ້າມ! ລະບົບເຕືອນ: ສອບບໍ່ຜ່ານ ຕ້ອງສອບເສັງໃໝ່!`;
+        wrongCount = 999; 
+        
+        localStorage.removeItem('lao_quiz_state_' + currentMode + '_' + currentCategoryFile);
+
+        if (actionButtons) {
+            actionButtons.innerHTML = `
+                <button onclick="startApp('${currentMode}')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                    🔄 ເລີ່ມຕົ້ນໃໝ່
+                </button>
+                <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                    🏠 ກຼັບຄືນໜ້າທຳອິດ
+                </button>
+            `;
+        }
+        return;
+    } else {
+        if (finalScore) finalScore.innerText = `ຜິດພາດ: ${wrongCount} ຂໍ້ (ຈາກ ${quizQuestions.length} ຂໍ້)`;
+
+        const isPassed = wrongCount <= 10;
+        const msg = isPassed
+            ? `🎉 ຍິນດີດ້ວຍ! ທ່ານຜ່ານການສອບເສັງ (ຜິດ ${wrongCount} ຂໍ້ ເຊິ່ງບໍ່ເກີນເກນ 10 ຂໍ້)`
+            : `❌ ທ່ານບໍ່ຜ່ານການສອບເສັງ (ຜິດ ${wrongCount} ຂໍ້ ເຊິ່ງເກີນເກນ 10 ຂໍ້)`;
+        if (scoreMsg) scoreMsg.innerText = msg;
+    }
+
+    if (wrongQuestionsList.length > 0) {
+        localStorage.setItem('lao_quiz_wrong_' + currentCategoryFile, JSON.stringify(wrongQuestionsList));
+    }
+
+    if (!hasSkipped) {
+        localStorage.removeItem('lao_quiz_state_' + currentMode + '_' + currentCategoryFile);
+    }
+
+    if (wrongQuestionsList.length > 0 && !hasSkipped) {
+        reviewButtonHtml = `
+            <button onclick="startApp('review_wrong')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #c0392b; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                🔄 ໄປແກ້ສະເພາະຂໍ້ທີ່ຜິດ (${wrongQuestionsList.length} ຂໍ້)
+            </button>
+        `;
+    }
+
+    if (actionButtons) {
+        actionButtons.innerHTML = `
+            ${reviewButtonHtml}
+            <button onclick="restartQuiz()" class="btn-restart" style="width: 100%;">ເລີ່ມສອບໃໝ່</button>
+            <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                🏠 ກຼັບຄືນໜ້າທຳອິດ
+            </button>
+        `;
+    }
 }
 
 function restartQuiz() {
@@ -352,6 +537,8 @@ function restartQuiz() {
     isAnswered = false;
     correctCount = 0;
     wrongCount = 0;
+    hasSkipped = false;
+    wrongQuestionsList = [];
     updateLiveScore();
     goHome();
 }
