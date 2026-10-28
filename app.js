@@ -140,7 +140,7 @@ function parseCsvInsideTxt(text) {
             let p = parts[i];
             if (p.endsWith('.png') || p.endsWith('.jpg')) {
                 // ถ้ายังเก็บรูปไว้ในโฟลเดอร์ images ให้ใช้ "images/" แต่ถ้าเอาออกมารวมข้างนอก ให้เอา "images/" ออกได้เลยครับ
-                imagePath = p.startsWith('http') ? p : ("images/" + p);
+                imagePath = p.startsWith('http') ? p : p;
                 break;
             }
         }
