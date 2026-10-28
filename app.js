@@ -47,7 +47,6 @@ async function fetchQuestions(filename, isRestoring = false) {
     document.getElementById('image-container').innerHTML = '';
     
     try {
-        // [แก้ไขแล้ว] ตัดคำว่า 'deta/' ออก ดึงไฟล์จากหน้าแรกโดยตรง
         const response = await fetch(filename);
         if (!response.ok) {
             throw new Error('ไม่พบไฟล์ ' + filename);
@@ -55,8 +54,10 @@ async function fetchQuestions(filename, isRestoring = false) {
         const textData = await response.text();
         quizQuestions = parseCsvInsideTxt(textData);
         
-        if (!isRestoring && currentMode === 'quiz') {
-            const savedData = localStorage.getItem('lao_quiz_state_' + filename);
+        // [ปรับปรุง] ให้ทั้งโหมด quiz และ study โหลดเซฟสถานะเดิม (ถ้ามี)
+        if (!isRestoring) {
+            const storageKey = 'lao_quiz_state_' + currentMode + '_' + filename;
+            const savedData = localStorage.getItem(storageKey);
             if (savedData) {
                 const data = JSON.parse(savedData);
                 currentQuestionIndex = data.currentQuestionIndex || 0;
@@ -69,11 +70,6 @@ async function fetchQuestions(filename, isRestoring = false) {
                 correctCount = 0;
                 wrongCount = 0;
             }
-        } else if (currentMode === 'study') {
-            currentQuestionIndex = 0;
-            userAnswers = {};
-            correctCount = 0;
-            wrongCount = 0;
         }
         
         isAnswered = (currentMode === 'study') ? true : (userAnswers[currentQuestionIndex] !== undefined);
@@ -139,7 +135,6 @@ function parseCsvInsideTxt(text) {
         for (let i = 6; i < parts.length; i++) {
             let p = parts[i];
             if (p.endsWith('.png') || p.endsWith('.jpg')) {
-                // ถ้ายังเก็บรูปไว้ในโฟลเดอร์ images ให้ใช้ "images/" แต่ถ้าเอาออกมารวมข้างนอก ให้เอา "images/" ออกได้เลยครับ
                 imagePath = p.startsWith('http') ? p : p;
                 break;
             }
@@ -171,14 +166,14 @@ function changeCategory() {
 }
 
 function saveQuizState() {
-    if (currentMode !== 'quiz') return;
+    // [ปรับปรุง] บันทึกสถานะแยกตามโหมด (quiz / study)
     const stateData = {
         currentQuestionIndex: currentQuestionIndex,
         userAnswers: userAnswers,
         correctCount: correctCount,
         wrongCount: wrongCount
     };
-    localStorage.setItem('lao_quiz_state_' + currentCategoryFile, JSON.stringify(stateData));
+    localStorage.setItem('lao_quiz_state_' + currentMode + '_' + currentCategoryFile, JSON.stringify(stateData));
 }
 
 function loadQuestion() {
@@ -290,12 +285,13 @@ function updateLiveScore() {
 
 function nextQuestion() {
     if (currentMode === 'quiz' && !isAnswered) {
-        alert('ກະລຸນາເລືອກຄຳຕອບກ່ອນກົດໄປຂໍ້ถັດไป!');
+        alert('ກະລຸນາເລືອກຄຳຕອບກ່ອນກົດໄປຂໍ້ถัดไป!');
         return;
     }
 
     if (currentQuestionIndex < quizQuestions.length - 1) {
         currentQuestionIndex++;
+        saveQuizState(); // [เพิ่ม] บันทึกตำแหน่งทันทีเมื่อกดไปข้อถัดไป
         loadQuestion();
     } else {
         if (currentMode === 'study') {
@@ -348,11 +344,11 @@ function showResults() {
         : '❌ ທ່ານບໍ່ຜ່ານການສອບເສັງ ກະລຸນາລອງໃໝ່ອີກຄັ້ງ';
     document.getElementById('score-message').innerText = msg;
 
-    localStorage.removeItem('lao_quiz_state_' + currentCategoryFile);
+    localStorage.removeItem('lao_quiz_state_quiz_' + currentCategoryFile);
 }
 
 function restartQuiz() {
-    localStorage.removeItem('lao_quiz_state_' + currentCategoryFile);
+    localStorage.removeItem('lao_quiz_state_' + currentMode + '_' + currentCategoryFile);
     isAnswered = false;
     correctCount = 0;
     wrongCount = 0;
