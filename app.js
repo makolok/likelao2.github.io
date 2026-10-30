@@ -18,35 +18,6 @@ function shuffleArray(array) {
     return array;
 }
 
-function getCompletedRounds(mode, filename) {
-    if (mode === 'study') return 0;
-    const key = `lao_quiz_rounds_${mode}_${filename}`;
-    return parseInt(localStorage.getItem(key)) || 0;
-}
-
-function incrementCompletedRounds(mode, filename) {
-    if (mode === 'study') return;
-    const key = `lao_quiz_rounds_${mode}_${filename}`;
-    let rounds = parseInt(localStorage.getItem(key)) || 0;
-    rounds++;
-    localStorage.setItem(key, rounds);
-    return rounds;
-}
-
-function updateRoundBanner() {
-    const banner = document.getElementById('round-counter-banner');
-    const countSpan = document.getElementById('completed-rounds-count');
-    if (!banner || !countSpan) return;
-
-    if (currentMode === 'quiz' || currentMode === 'random') {
-        banner.style.display = 'block';
-        const rounds = getCompletedRounds(currentMode, currentCategoryFile);
-        countSpan.innerText = rounds;
-    } else {
-        banner.style.display = 'none';
-    }
-}
-
 function startApp(mode) {
     currentMode = mode;
     hasSkipped = false; 
@@ -64,24 +35,35 @@ function startApp(mode) {
     const wrapper = document.getElementById('main-quiz-wrapper');
     if (wrapper) wrapper.style.display = 'flex';
 
+    const appBody = document.getElementById('app-body');
     const quizBox = document.getElementById('main-quiz-box');
+    const subHeader = document.getElementById('sub-header-bar');
+    const modeHeader = document.getElementById('mode-header-title');
 
-    // 🎨 เปลี่ยนสีกล่องตามหมวด (ตัวหนังสือในกล่องทั้งหมดบังคับเป็นสีขาว)
     if (currentMode === 'study') {
+        if (appBody) appBody.style.backgroundColor = '#bbdefb';
         if (quizBox) {
-            quizBox.style.backgroundColor = '#18181b'; // หมวด 1: สีดำ/เทาเข้ม
-            quizBox.style.color = '#ffffff';
+            quizBox.style.backgroundColor = '#e3f2fd';
+            quizBox.style.borderColor = '#64b5f6';
         }
+        if (subHeader) subHeader.style.borderColor = '#42a5f5';
+        if (modeHeader) modeHeader.style.color = '#1565c0';
     } else if (currentMode === 'quiz') {
+        if (appBody) appBody.style.backgroundColor = '#c8e6c9';
         if (quizBox) {
-            quizBox.style.backgroundColor = '#713f12'; // หมวด 2: สีเหลืองเข้ม/น้ำตาลทอง
-            quizBox.style.color = '#ffffff';
+            quizBox.style.backgroundColor = '#e8f5e9';
+            quizBox.style.borderColor = '#81c784';
         }
+        if (subHeader) subHeader.style.borderColor = '#66bb6a';
+        if (modeHeader) modeHeader.style.color = '#2e7d32';
     } else if (currentMode === 'random') {
+        if (appBody) appBody.style.backgroundColor = '#fff9c4';
         if (quizBox) {
-            quizBox.style.backgroundColor = '#581c87'; // หมวด 3: สีม่วงเข้ม
-            quizBox.style.color = '#ffffff';
+            quizBox.style.backgroundColor = '#fffde7';
+            quizBox.style.borderColor = '#ffd54f';
         }
+        if (subHeader) subHeader.style.borderColor = '#ffca28';
+        if (modeHeader) modeHeader.style.color = '#f57f17';
     }
 
     const scoreBoard = document.getElementById('live-score-board');
@@ -89,7 +71,6 @@ function startApp(mode) {
         scoreBoard.style.display = (currentMode === 'study') ? 'none' : 'flex';
     }
 
-    updateRoundBanner();
     fetchQuestions(currentCategoryFile, false);
 }
 
@@ -100,10 +81,13 @@ function goHome() {
     const homeScreen = document.getElementById('home-screen');
     if (homeScreen) homeScreen.style.display = 'block';
 
+    const appBody = document.getElementById('app-body');
+    if (appBody) appBody.style.backgroundColor = '';
+
     const quizBox = document.getElementById('main-quiz-box');
     if (quizBox) {
-        quizBox.style.backgroundColor = '#1e3a8a'; // หน้าแรก: สีน้ำเงิน
-        quizBox.style.color = '#ffffff';
+        quizBox.style.backgroundColor = '';
+        quizBox.style.borderColor = '';
     }
 }
 
@@ -176,7 +160,6 @@ async function fetchQuestions(filename, isRestoring = false) {
         
         isAnswered = (currentMode === 'study') ? true : (userAnswers[currentQuestionIndex] !== undefined);
         updateLiveScore();
-        updateRoundBanner();
         
         if (quizQuestions.length > 0) {
             loadQuestion();
@@ -348,9 +331,9 @@ function loadQuestion() {
             const letterLabel = laoLetters[idx] || (idx + 1);
 
             const optionHTML = `
-                <label class="option-label ${extraClass}" onclick="selectOption(${idx})" style="cursor: pointer; color: #ffffff;">
+                <label class="option-label ${extraClass}" onclick="selectOption(${idx})" style="cursor: pointer;">
                     <input type="radio" name="option" value="${idx}" ${isChecked ? 'checked' : ''} ${isAnswered && currentMode !== 'study' ? 'disabled' : ''} style="display: none;">
-                    <span style="font-weight: bold; margin-right: 8px;">${letterLabel}.</span>
+                    <span style="font-weight: bold; margin-right: 10px; font-size: 1.05rem;">${letterLabel}.</span>
                     <span>${opt}</span>
                 </label>
             `;
@@ -422,7 +405,6 @@ function nextQuestion() {
         if (currentMode === 'study') {
             showStudyCompleteScreen();
         } else {
-            incrementCompletedRounds(currentMode, currentCategoryFile);
             showResults();
         }
     }
@@ -456,10 +438,10 @@ function showStudyCompleteScreen() {
 
         if (actionButtons) {
             actionButtons.innerHTML = `
-                <button onclick="startApp('study')" style="padding: 11px; font-size: 0.9rem; font-weight: bold; background: #0284c7; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
-                    🔄 ເລີ່ມຕົ້ນໃໝ່
+                <button onclick="startApp('study')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #e67e22; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                    🔄  ເລີ່ມຕົ້ນໃໝ່
                 </button>
-                <button onclick="goHome()" style="padding: 10px; font-size: 0.85rem; font-weight: bold; background: #475569; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
                     🏠 ກຼັບຄືນໜ້າທຳອິດ
                 </button>
             `;
@@ -472,11 +454,11 @@ function showStudyCompleteScreen() {
     
     if (actionButtons) {
         actionButtons.innerHTML = `
-            <button onclick="startApp('quiz')" style="padding: 11px; font-size: 0.9rem; font-weight: bold; background: #0284c7; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+            <button onclick="startApp('quiz')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #1b5e20; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
                 📝 ເລີ່ມເຂົ້າສູ່ໂໝດສອບເສັງເລີຍ
             </button>
-            <button onclick="goHome()" style="padding: 10px; font-size: 0.85rem; font-weight: bold; background: #475569; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
-                🏠 กลับไปหน้าหลัก
+            <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                🏠 กลับໄປหน้าหลัก
             </button>
         `;
     }
@@ -494,12 +476,6 @@ function showResults() {
 
     const finalScore = document.getElementById('final-score');
     const scoreMsg = document.getElementById('score-message');
-    const resultRoundDisplay = document.getElementById('result-round-display');
-
-    const totalRounds = getCompletedRounds(currentMode, currentCategoryFile);
-    if (resultRoundDisplay) {
-        resultRoundDisplay.innerHTML = `🔄 ທ່ານເຮັດຈົບຮອບນີ້ແລ້ວ | <strong>ລວມທັງໝົດ: ${totalRounds} ຮອບ</strong>`;
-    }
 
     if (hasSkipped) {
         if (finalScore) finalScore.innerText = `❌ ສອບເສັງບໍ່ຜ່ານ (ມີການກົດຂ້າມ)`;
@@ -510,10 +486,10 @@ function showResults() {
 
         if (actionButtons) {
             actionButtons.innerHTML = `
-                <button onclick="startApp('${currentMode}')" style="padding: 11px; font-size: 0.9rem; font-weight: bold; background: #0284c7; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                <button onclick="startApp('${currentMode}')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
                     🔄 ເລີ່ມຕົ້ນໃໝ່
                 </button>
-                <button onclick="goHome()" style="padding: 10px; font-size: 0.85rem; font-weight: bold; background: #475569; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
                     🏠 ກຼັບຄືນໜ້າທຳອິດ
                 </button>
             `;
@@ -539,7 +515,7 @@ function showResults() {
 
     if (wrongQuestionsList.length > 0 && !hasSkipped) {
         reviewButtonHtml = `
-            <button onclick="startApp('review_wrong')" style="padding: 11px; font-size: 0.9rem; font-weight: bold; background: #0284c7; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+            <button onclick="startApp('review_wrong')" style="padding: 12px; font-size: 0.95rem; font-weight: bold; background-color: #c0392b; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
                 🔄 ໄປແກ້ສະເພາະຂໍ້ທີ່ຜິດ (${wrongQuestionsList.length} ຂໍ້)
             </button>
         `;
@@ -548,9 +524,9 @@ function showResults() {
     if (actionButtons) {
         actionButtons.innerHTML = `
             ${reviewButtonHtml}
-            <button onclick="restartQuiz()" class="btn-restart" style="width: 100%; background: #0284c7;">ເລີ່ມສອບໃໝ່</button>
-            <button onclick="goHome()" style="padding: 10px; font-size: 0.85rem; font-weight: bold; background: #475569; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
-                🏠 กลับไปหน้าหลัก
+            <button onclick="restartQuiz()" class="btn-restart" style="width: 100%;">ເລີ່ມສອບໃໝ່</button>
+            <button onclick="goHome()" style="padding: 10px; font-size: 0.9rem; font-weight: bold; background-color: #95a5a6; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;">
+                🏠 ກຼັບຄືນໜ້າທຳອິດ
             </button>
         `;
     }
